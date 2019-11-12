@@ -119,21 +119,21 @@ class GameTestCase(unittest.TestCase):
           "Dagger": [
             [
               2,
-              2
+              5
             ],
             False,
           ],
           "MagicStaff": [
             [
-              2,
+              5,
               2
             ],
             False,
           ],
           "Helmet": [
             [
-              2,
-              2
+              5,
+              5
             ],
             False,
           ]
@@ -147,6 +147,53 @@ class GameTestCase(unittest.TestCase):
     def test_init_game_json(self):
         game = Game()
         assert json.loads(game.to_json()) == self.initial_expected
+
+    def test_item_initial_positions(self):
+        game = Game()
+        assert game.items_on_position([2,5])[0].name == 'Dagger'
+        assert len(game.items_on_position([2, 5]))
+        assert game.items_on_position([5, 5])[0].name == 'Helmet'
+        assert len(game.items_on_position([5, 5]))
+
+    def test_multiple_items_on_position(self):
+        game = Game()
+        for item in game.items:
+            item.position = [3, 3]
+        assert len(game.items_on_position([3, 3])) == 4
+
+    def test_choose_best_item(self):
+        game = Game()
+        items = game.items
+        assert game.choose_best_item(items).name == 'Axe'
+        items = game.items[2:]
+        assert game.choose_best_item(items).name == 'MagicStaff'
+
+    def test_move_picksup_item(self):
+        game = Game()
+        game.knights['R'].position = [2, 1]
+        game.move('R', 'E')
+        assert game.knights['R'].position == [2, 2]
+        assert not game.items_on_position([2, 2])
+        assert game.knights['R'].item.name == 'Axe'
+
+    def test_fight(self):
+        knight = Knight('Red', [2, 2])
+        enemy = Knight('Blue', [2, 2])
+        game = Game()
+        game.fight(knight, enemy)
+        assert enemy.status == 'dead'
+        assert enemy.position == [2, 2]
+        assert knight.status == 'alive'
+        assert knight.position == [2, 2]
+
+    def test_read_moves(self):
+        game = Game()
+        game.read_moves_from_file('moves.txt')
+        status = game.get_state()
+        assert status['Red'] == [[2, 0], 'alive', None, 1, 1]
+        assert status['Blue'] == [[7, 1], 'alive', None, 1, 1]
+        assert status['Green'] == [[6, 7], 'alive', None, 1, 1]
+        assert status['Yellow'] == [None, 'drowned', None, 1, 1]
 
 
 if __name__ == '__main__':

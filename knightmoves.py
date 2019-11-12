@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
-
+Tests
 """
 import json
 
@@ -12,19 +11,51 @@ class Game:
         """Set up board."""
         self.items = []
         self.items.append(Item('Axe', [2, 2], attack=2))
-        self.items.append(Item('Dagger', [2, 2], attack=1))
-        self.items.append(Item('MagicStaff', [2, 2], attack=1, defence=1))
-        self.items.append(Item('Helmet', [2, 2], defence=1))
+        self.items.append(Item('Dagger', [2, 5], attack=1))
+        self.items.append(Item('MagicStaff', [5, 2], attack=1, defence=1))
+        self.items.append(Item('Helmet', [5, 5], defence=1))
         self.knights = {}
         self.knights['R'] = Knight('Red', [0, 0])
         self.knights['B'] = Knight('Blue', [7, 0])
         self.knights['G'] = Knight('Green', [7, 7])
         self.knights['Y'] = Knight('Yellow', [0, 7])
 
+    def items_on_position(self, pos):
+        return [item for item in self.items if item.position == pos and not item.equipped]
+
+    def choose_best_item(self, items):
+        for item in items:
+            for char in ('A', 'M', 'D', 'H'): # hacky, item should have a weight
+                if item.name.startswith(char):
+                    return item
+
+    def get_other_knight_on_position(self, pos, myknight):
+        for knight in self.knights.values():
+            if knight == myknight:
+                continue
+            if knight.position == pos and knight.status == 'alive':
+                return knight
+        return None
+
+    def fight(self, knight, enemy):
+        if knight.attack + .5 > enemy.defence:  # 0.5 surprise guarantees we never have a draw
+            enemy.die()
+        else:
+            knight.die()
+
     def move(self, knight_key, direction):
         knight = self.knights[knight_key]
-        knight.move(direction)
-
+        pos = knight.move(direction)
+        if not pos:
+            # drowned or dead
+            return
+        items =  self.items_on_position(pos)
+        item = self.choose_best_item(items)
+        if not knight.item and item:
+            knight.pickup_item(item)
+        enemy = self.get_other_knight_on_position(pos, knight)
+        if enemy:
+            self.fight(knight, enemy)
 
     def get_state(self):
         """Return current state of the board."""
@@ -38,6 +69,16 @@ class Game:
     def to_json(self):
         """Output game as json."""
         return json.dumps(self.get_state())
+
+    def read_moves_from_file(self, filename):
+        with open(filename, 'r') as f:
+            assert f.readline().strip() == 'GAME-START'
+            while True:
+                try:
+                    k, v = f.readline().strip().split(':')
+                    self.move(k,v)
+                except ValueError:
+                    break
 
 
 class Item:
@@ -87,6 +128,8 @@ class Knight:
         """Move knight by one field."""
         if not self.position:
             return None
+        if not self.status == 'alive':
+            return None
         assert direction in ['N', 'S', 'E', 'W']
         moves = {
             'N': (-1, 0),
@@ -94,7 +137,7 @@ class Knight:
             'W': (0, -1),
             'E': (0, 1),
         }
-        _position = (self._position[0] + moves[direction][0], self._position[1] + moves[direction][1])
+        _position = [self._position[0] + moves[direction][0], self._position[1] + moves[direction][1]]
         for i in [0, 1]:
             if not 0 <= _position[i] <= 7:
                 self._status = 'drowned'
@@ -102,11 +145,12 @@ class Knight:
                 self.drop_item()
                 return _position
 
-        if self.status != 'alive':
-            pass
-
         self.position = _position
         return _position
+
+    def die(self):
+        self.drop_item()
+        self._status = 'dead'
 
     def drop_item(self):
         if self._item:
