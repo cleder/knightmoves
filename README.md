@@ -1,3 +1,6 @@
+Only tested with python 3.6
+Run the test with pytest
+# Usage
 ```
 >>> import knightmoves
 >>> game = knightmoves.Game()
