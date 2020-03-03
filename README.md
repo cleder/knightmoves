@@ -66,12 +66,13 @@ Each Knight has a base attack and defence score of 1:
 
 If one knight moves onto the tile of another knight then they will attack. The knight already on the
 tile will defend.
+
 The outcome of a fight is determined as follows:
-• The attacker takes their base attack score and adds any item modifiers.
-• The attacker adds 0.5 to their attack score (for the element of surprise).
-• The defender takes their base defence score and adds any item modifiers.
-• The attackers final attack score is compared to the defenders final defence score.
-• The higher score wins, the losing knight dies.
+- The attacker takes their base attack score and adds any item modifiers.
+- The attacker adds 0.5 to their attack score (for the element of surprise).
+- The defender takes their base defence score and adds any item modifiers.
+- The attackers final attack score is compared to the defenders final defence score.
+- The higher score wins, the losing knight dies.
 
 DEAD knights drop any equipped items immediately. Further moves do not apply to DEAD
 knights. The final position of a DEAD knight is the tile that they die on.
