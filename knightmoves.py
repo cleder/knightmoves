@@ -3,10 +3,11 @@
 Tests
 """
 import json
+from typing import Dict, List, Optional, Union, Tuple
 
 
 class Game:
-    def __init__(self):
+    def __init__(self) -> None:
         """Set up board."""
         self.items = []
         self.items.append(Item("Axe", [2, 2], attack=2))
@@ -19,18 +20,19 @@ class Game:
         self.knights["G"] = Knight("Green", [7, 7])
         self.knights["Y"] = Knight("Yellow", [0, 7])
 
-    def items_on_position(self, pos):
+    def items_on_position(self, pos: List[int]) -> List[Item]:
         return [
             item for item in self.items if item.position == pos and not item.equipped
         ]
 
-    def choose_best_item(self, items):
+    def choose_best_item(self, items: List[Item]) -> Optional[Item]:
         for item in items:
             for char in ("A", "M", "D", "H"):  # hacky, item should have a weight
                 if item.name.startswith(char):
                     return item
+        return None
 
-    def get_other_knight_on_position(self, pos, myknight):
+    def get_other_knight_on_position(self, pos: List[int], myknight: Knight) -> Optional[Knight]:
         for knight in self.knights.values():
             if knight == myknight:
                 continue
@@ -38,7 +40,7 @@ class Game:
                 return knight
         return None
 
-    def fight(self, knight, enemy):
+    def fight(self, knight: Knight, enemy: Knight) -> None:
         if (
             knight.attack + 0.5 > enemy.defence
         ):  # 0.5 surprise guarantees we never have a draw
@@ -46,7 +48,7 @@ class Game:
         else:
             knight.die()
 
-    def move(self, knight_key, direction):
+    def move(self, knight_key: str, direction: str) -> None:
         knight = self.knights[knight_key]
         pos = knight.move(direction)
         if not pos:
@@ -60,7 +62,16 @@ class Game:
         if enemy:
             self.fight(knight, enemy)
 
-    def get_state(self):
+    def get_state(
+        self,
+    ) -> Dict[
+        str,
+        Union[
+            List[Optional[Union[List[int], str, int]]],
+            List[Optional[Union[str, int]]],
+            List[Union[List[int], bool]],
+        ],
+    ]:
         """Return current state of the board."""
         state = {}
         for knight in self.knights.values():
@@ -69,11 +80,11 @@ class Game:
             state[item.name] = item.get_state()
         return state
 
-    def to_json(self):
+    def to_json(self) -> str:
         """Output game as json."""
         return json.dumps(self.get_state())
 
-    def read_moves_from_file(self, filename):
+    def read_moves_from_file(self, filename: str) -> None:
         with open(filename, "r") as f:
             assert f.readline().strip() == "GAME-START"
             while True:
@@ -87,7 +98,14 @@ class Game:
 class Item:
     """"""
 
-    def __init__(self, name, position, attack=0, defence=0, max_xy=None):
+    def __init__(
+        self,
+        name: str,
+        position: List[int],
+        attack: int = 0,
+        defence: int = 0,
+        max_xy: Optional[Tuple[int, int]] = None,
+    ) -> None:
         """Initialize items."""
         if max_xy is None:
             max_xy = (7, 7)
@@ -97,22 +115,28 @@ class Item:
             assert 0 <= position[i] <= max_xy[i]
         self.position = position
         self.name = name
-        self.knight = None
+        self.knight:Optional[Knight] = None
         self.attack = attack
         self.defence = defence
 
     @property
-    def equipped(self):
+    def equipped(self) -> bool:
         return self.knight is not None
 
-    def get_state(self):
+    def get_state(self) -> List[Union[List[int], bool]]:
         return [self.position, self.equipped]
 
 
 class Knight:
     """"""
 
-    def __init__(self, color, position, status="alive", max_xy=None):
+    def __init__(
+        self,
+        color: str,
+        position: List[int],
+        status: str = "alive",
+        max_xy:  Optional[Tuple[int, int]]  = None,
+    ) -> None:
         """Initialize knight."""
         if max_xy is None:
             max_xy = (7, 7)
@@ -120,18 +144,19 @@ class Knight:
         assert len(position) == 2
         for i in [0, 1]:
             assert 0 <= position[i] <= max_xy[i]
-        self._position = position
+        self._position:Optional[List[int]] = position
         assert status in ["alive", "dead", "drowned"]
         self._status = status
         self._color = color
-        self._item = None
+        self._item:Optional[Item] = None
         self._defence = 1
         self._attack = 1
 
-    def move(self, direction):
+    def move(self, direction: str) -> Optional[List[int]]:
         """Move knight by one field."""
         if not self.position:
             return None
+        assert self._position
         if not self.status == "alive":
             return None
         assert direction in ["N", "S", "E", "W"]
@@ -155,22 +180,22 @@ class Knight:
         self.position = _position
         return _position
 
-    def die(self):
+    def die(self) -> None:
         self.drop_item()
         self._status = "dead"
 
-    def drop_item(self):
+    def drop_item(self) -> None:
         if self._item:
             self._item.knight = None
         self._item = None
 
-    def pickup_item(self, item):
+    def pickup_item(self, item: Item) -> None:
         assert item.position == self.position
         self._item = item
         item.knight = self
 
     @property
-    def status(self):
+    def status(self) -> str:
         return self._status
 
     @property
@@ -184,24 +209,28 @@ class Knight:
             self.item.position = new_position
 
     @property
-    def item(self):
+    def item(self) -> Optional[Item]:
         return self._item
 
     @property
-    def defence(self):
+    def defence(self) -> int:
         if self._item:
             return self._defence + self._item.defence
         return self._defence
 
     @property
-    def attack(self):
+    def attack(self) -> int:
         if self._item:
             return self._attack + self._item.attack
         return self._attack
 
     @property
-    def color(self):
+    def color(self) -> str:
         return self._color
 
-    def get_state(self):
+    def get_state(
+        self,
+    ) -> Union[
+        List[Optional[Union[str, int]]], List[Optional[Union[List[int], str, int]]]
+    ]:
         return [self.position, self.status, self.item, self.attack, self.defence]
